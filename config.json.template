@@ -1,0 +1,9 @@
+{
+    "mqtt_host_name" : "host_name_here",
+    "wifi" : {
+        "ssid" : "ssid_here",
+        "password" : "password here"
+    },
+    "device_name" : "device_name_here",
+    "humitemp_pin" : 5
+}
