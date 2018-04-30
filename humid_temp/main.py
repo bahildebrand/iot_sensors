@@ -4,6 +4,8 @@ import json
 import dht
 import machine
 import time
+import utime
+
 
 def wifi_connect(ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -15,19 +17,21 @@ def wifi_connect(ssid, password):
             pass
     print('Connected!')
 
+
 def enter_deep_sleep():
     rtc = machine.RTC()
     rtc.irq(trigger=rtc.ALARM0, wake=machine.DEEPSLEEP)
 
     # Wake up device after 30 minutes
-    rtc.alarm(rtc.ALARM0, 1000 * 60 * 30 )
+    rtc.alarm(rtc.ALARM0, 1000 * 60 * 30)
 
     # Wait 20 seconds before sleeping to avoid difficult to program boot loop
     time.sleep(20)
 
-    #put the device to sleep
+    # put the device to sleep
     print("Going to deep sleep")
     machine.deepsleep()
+
 
 def main():
     config = json.load(open("config.json"))
@@ -49,13 +53,19 @@ def main():
     print("humidity: " + str(humidity))
     print("temperature: " + str(temperature))
 
-    mqtt_conn.publish(config["device_name"] + "/humidity", str(humidity))
-    mqtt_conn.publish(config["device_name"] + "/temperature", str(temperature))
+    now = utime.localtime()
+    sensor_payload = {
+        "humidity": humidity,
+        "temperature": temperature
+    }
+
+    mqtt_conn.publish(config["device_name"], str(sensor_payload))
 
     mqtt_conn.disconnect()
 
     # Disable for now during development
-    #enter_deep_sleep()
+    # enter_deep_sleep()
+
 
 if __name__ == "__main__":
     print("board started")
