@@ -1,5 +1,7 @@
 from umqtt.simple import MQTTClient
 from machine import SPI
+from carbon_monoxoide.CO import get_co_percentage
+from humid_temp.DHT11 import measure_humid_temp
 import network
 import json
 import dht
@@ -17,35 +19,6 @@ def wifi_connect(ssid, password):
         while not wlan.isconnected():
             pass
     print('Connected!')
-
-
-def read_adc(adc_num):
-    spi = machine.SPI(1)
-    spi.init(baudrate=1000000, phase=0, polarity=0)
-
-    cs = machine.Pin(15, machine.Pin.OUT)
-    # Make sure CS line starts high
-    cs.on()
-    cs.off()
-
-    command = adc_num
-    command |= 8
-    command <<= 4
-    # Start Byte, Command Byte, Don't Care Byte
-    b_array = bytearray([1, command, 0xFF])
-    spi.write_readinto(b_array, b_array)
-
-    val = (b_array[1] & 3) << 8
-    val |= b_array[2]
-
-    return val
-
-
-def get_co_percentage():
-    co_val = read_adc(0)
-    co_per = co_val / 1024.0
-
-    return co_per
 
 
 def enter_deep_sleep():
@@ -71,22 +44,16 @@ def main():
     mqtt_conn = MQTTClient(config["device_name"], config["mqtt_host_name"])
     mqtt_conn.connect()
 
-    humitemp = dht.DHT11(machine.Pin(config["humitemp_pin"]))
-    humitemp.measure()
+    co_percentage = get_co_percentage(0)
 
-    # Give enough time for reading from sensor
-    time.sleep(1)
+    res_dict = measure_humid_temp(config["humitemp_pin"])
 
-    humidity = humitemp.humidity()
-    temperature = humitemp.temperature()
-    co_percentage = get_co_percentage()
-
-    print("humidity: " + str(humidity))
-    print("temperature: " + str(temperature))
+    print("humidity: " + str(res_dict["humidity"]))
+    print("temperature: " + str(res_dict["temperature"]))
 
     sensor_payload = {
-        "humidity": humidity,
-        "temperature": temperature,
+        "humidity": res_dict["humidity"],
+        "temperature": res_dict["temperature"],
         "carbon monoxide": co_percentage
     }
 
